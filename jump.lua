@@ -60,7 +60,8 @@ local Services = {
     StarterGui = game:GetService("StarterGui"),
     CoreGui = game:GetService("CoreGui"),
     Workspace = game:GetService("Workspace"),
-    TweenService = game:GetService("TweenService")
+    TweenService = game:GetService("TweenService"),
+    SoundService = game:GetService("SoundService")
 }
 
 local LocalPlayer = Services.Players.LocalPlayer
@@ -174,7 +175,6 @@ local function BB_MakeDraggable(gui, func, ripple, sound)
 end
 
 local muteButtonSounds = false
-local muteToggleConnection = nil
 
 local function UpdateAllButtonSounds()
     local volume = muteButtonSounds and 0 or 0.5
@@ -512,23 +512,51 @@ aboutSection:AddToggle("Mute Button SFX", function(bool)
     UpdateAllButtonSounds()
 end)
 
-shared.Notify("Bomb Jump+ Successfully Loaded", 5)
+shared.Notify("Better Bomb Jump v2 Successfully Loaded", 5)
 
 local section = shared.AddSection("Bomb Jump+")
 
-local onCooldown = false
+local CONFIG = {
+    CooldownTime = 22.0,
+    LaunchPower = 58,
+    MinSize = 50,
+    MaxSize = 300,
+    DefaultSize = 90
+}
+
 local bombJumpEnabled = false
+local onCooldown = false
 local debounce = false
 local autoGetBomb = false
 local justRespawned = false
-local bigButtonSize = 200
+local bigButtonSize = CONFIG.DefaultSize
 local bindButtonSize = 0.11
 local bjBindButton = nil
+local bigBtnExists = false
+local bindBtnExists = false
 
 local BOMB_NAMES = {"FakeBomb"}
 
 local BombJumpMaid = Maid.new()
 RootMaid:GiveTask(BombJumpMaid)
+
+local Sounds = {
+    Click = Instance.new("Sound"),
+    Cooldown = Instance.new("Sound")
+}
+Sounds.Click.SoundId = "rbxassetid://6895079853"
+Sounds.Click.Volume = 1.0
+
+Sounds.Cooldown.SoundId = "rbxassetid://138090596"
+Sounds.Cooldown.Volume = 1.0
+
+local function PlaySound(snd)
+    pcall(function()
+        if snd then
+            Services.SoundService:PlayLocalSound(snd)
+        end
+    end)
+end
 
 local function IsPlayerInAir()
     local character = LocalPlayer.Character
@@ -570,7 +598,7 @@ local function StartCooldown()
     end
     
     task.spawn(function()
-        for i = 22, 1, -1 do
+        for i = CONFIG.CooldownTime, 1, -1 do
             if not onCooldown then break end
             local bigBtn = BBSystem.Buttons["bombjump_big"]
             if bigBtn then bigBtn.Text = tostring(i) end
@@ -673,9 +701,17 @@ local function FastBombJump()
         if position then
             local remote = bomb:FindFirstChild("Remote")
             if remote then
+                PlaySound(Sounds.Click)
                 pcall(function()
                     remote:FireServer(CFrame.new(position), 50)
                 end)
+            end
+            
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then
+                local currentVelocity = root.AssemblyLinearVelocity
+                root.AssemblyLinearVelocity = Vector3.new(currentVelocity.X, CONFIG.LaunchPower, currentVelocity.Z)
             end
             
             MakeCharacterJump()
@@ -759,6 +795,7 @@ section:AddToggle("Auto-Get Fake Bomb", function(bool)
 end)
 
 section:AddToggle("Enable BJ Big Button", function(e)
+    bigBtnExists = e
     if e then
         AddBigButton("bombjump_big", "Bomb Jump", FastBombJump, false)
         local btn = BBSystem.Buttons["bombjump_big"]
@@ -770,7 +807,7 @@ section:AddToggle("Enable BJ Big Button", function(e)
     end
 end)
 
-section:AddSlider("BJ Big Button Size", 100, 400, 200, function(value)
+section:AddSlider("BJ Big Button Size", 50, 300, CONFIG.DefaultSize, function(value)
     bigButtonSize = value
     local btn = BBSystem.Buttons["bombjump_big"]
     if btn then
@@ -779,6 +816,7 @@ section:AddSlider("BJ Big Button Size", 100, 400, 200, function(value)
 end)
 
 section:AddToggle("Enable BJ Bind Button", function(e)
+    bindBtnExists = e
     if e then
         BindableButtons.AddBButton("bombjump_bind", "BJ", FastBombJump, false)
         bjBindButton = BindableButtons.Buttons["bombjump_bind"]
@@ -937,9 +975,17 @@ local function FastGoldBombJump()
         if position then
             local remote = bomb:FindFirstChild("Remote")
             if remote then
+                PlaySound(Sounds.Click)
                 pcall(function()
                     remote:FireServer(CFrame.new(position), 50)
                 end)
+            end
+
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then
+                local currentVelocity = root.AssemblyLinearVelocity
+                root.AssemblyLinearVelocity = Vector3.new(currentVelocity.X, CONFIG.LaunchPower, currentVelocity.Z)
             end
 
             GBJMakeCharacterJump()
@@ -1026,7 +1072,7 @@ gbjSection:AddToggle("Enable GBJ Big Button", function(e)
     end
 end)
 
-gbjSection:AddSlider("GBJ Big Button Size", 100, 400, 200, function(value)
+gbjSection:AddSlider("GBJ Big Button Size", 50, 300, 200, function(value)
     gbjBigButtonSize = value
     local btn = BBSystem.Buttons["goldbombjump_big"]
     if btn then
