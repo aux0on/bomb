@@ -512,7 +512,7 @@ aboutSection:AddToggle("Mute Button SFX", function(bool)
     UpdateAllButtonSounds()
 end)
 
-shared.Notify("Better Bomb Jump v2 Successfully Loaded", 5)
+shared.Notify("Bomb Jump+ Successfully Loaded", 5)
 
 local section = shared.AddSection("Bomb Jump+")
 
