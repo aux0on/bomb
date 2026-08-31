@@ -220,7 +220,7 @@ local function AddBigButton(id, text, func, isGold)
     stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     stroke.Parent = bb
     local gradient = Instance.new("UIGradient")
-    
+
     if isGold then
         gradient.Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0,    __RGB(255, 215, 0)),
@@ -334,7 +334,7 @@ end
 local function Bind_MakeDraggable(gui, maid, ripple, sound, clickFunc)
     local dragging, dragInput, dragStart, startPos
     local hasMoved = false
-    
+
     maid:GiveTask(gui.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging, dragStart, startPos = true, input.Position, gui.Position
@@ -362,13 +362,13 @@ local function Bind_MakeDraggable(gui, maid, ripple, sound, clickFunc)
             end)
         end
     end))
-    
+
     maid:GiveTask(gui.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end))
-    
+
     maid:GiveTask(__UIS.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
@@ -381,7 +381,7 @@ end
 
 function BindableButtons.AddBButton(id, text, clickFunc, isGold)
     if BindableButtons.Buttons[id] then return end
-    
+
     local buttonMaid = Maid.new()
     local camera = workspace.CurrentCamera
     local screen = camera.ViewportSize
@@ -466,12 +466,12 @@ end
 function BindableButtons.UpdateBButtonText(id, text, isWaiting, isGold)
     local btn = BindableButtons.Buttons[id]
     if not btn then return end
-    
+
     local textLabel = btn:FindFirstChild("@Text")
     if textLabel then
         textLabel.Text = text
     end
-    
+
     local stroke = btn:FindFirstChild("@Stroke")
     if stroke then
         if isGold then
@@ -561,20 +561,20 @@ end
 local function IsPlayerInAir()
     local character = LocalPlayer.Character
     if not character then return false end
-    
+
     local humanoid = character:FindFirstChild("Humanoid")
     if not humanoid then return false end
-    
+
     local rootPart = character:FindFirstChild("HumanoidRootPart")
     if not rootPart then return false end
-    
+
     local state = humanoid:GetState()
     if state == Enum.HumanoidStateType.Jumping or 
        state == Enum.HumanoidStateType.FallingDown or
        state == Enum.HumanoidStateType.Freefall then
         return true
     end
-    
+
     local velocityY = rootPart.Velocity.Y
     return math.abs(velocityY) > 0.5
 end
@@ -596,7 +596,7 @@ local function StartCooldown()
     if bjBindButton then
         BindableButtons.UpdateBButtonText("bombjump_bind", "Wait", true, false)
     end
-    
+
     task.spawn(function()
         for i = CONFIG.CooldownTime, 1, -1 do
             if not onCooldown then break end
@@ -633,7 +633,6 @@ end
 
 local function UnequipBomb()
     task.spawn(function()
-        task.wait(0.5)
         local character = LocalPlayer.Character
         if character then
             for _, bombName in ipairs(BOMB_NAMES) do
@@ -650,12 +649,12 @@ end
 local function GetAnyBomb()
     local character = LocalPlayer.Character
     if not character then return false, nil end
-    
+
     for _, bombName in ipairs(BOMB_NAMES) do
         local bomb = character:FindFirstChild(bombName)
         if bomb then return true, bomb end
     end
-    
+
     local backpack = LocalPlayer:FindFirstChild("Backpack")
     if backpack then
         for _, bombName in ipairs(BOMB_NAMES) do
@@ -666,11 +665,11 @@ local function GetAnyBomb()
             end
         end
     end
-    
+
     pcall(function()
         Services.ReplicatedStorage.Remotes.Extras.ReplicateToy:InvokeServer("FakeBomb")
     end)
-    
+
     for _ = 1, 5 do
         for _, bombName in ipairs(BOMB_NAMES) do
             local bomb = character:FindFirstChild(bombName)
@@ -685,7 +684,7 @@ local function GetAnyBomb()
         end
         task.wait(0.05)
     end
-    
+
     return false, nil
 end
 
@@ -693,9 +692,9 @@ local function FastBombJump()
     if not IsPlayerInAir() then return end
     if onCooldown or debounce or justRespawned then return end
     debounce = true
-    
+
     local success, bomb = GetAnyBomb()
-    
+
     if success and bomb then
         local position = GetCenterPosition()
         if position then
@@ -706,24 +705,24 @@ local function FastBombJump()
                     remote:FireServer(CFrame.new(position), 50)
                 end)
             end
-            
+
             local char = LocalPlayer.Character
             local root = char and char:FindFirstChild("HumanoidRootPart")
             if root then
                 local currentVelocity = root.AssemblyLinearVelocity
                 root.AssemblyLinearVelocity = Vector3.new(currentVelocity.X, CONFIG.LaunchPower, currentVelocity.Z)
             end
-            
+
             MakeCharacterJump()
             UnequipBomb()
-            
+
             task.spawn(function()
                 task.wait(0.1)
                 StartCooldown()
             end)
         end
     end
-    
+
     task.spawn(function()
         task.wait(0.5)
         debounce = false
@@ -733,7 +732,7 @@ end
 local function IsHoldingBomb()
     local character = LocalPlayer.Character
     if not character then return false end
-    
+
     for _, bombName in ipairs(BOMB_NAMES) do
         if character:FindFirstChild(bombName) then
             return true
@@ -780,6 +779,8 @@ BombJumpMaid:GiveTasks(
         if autoGetBomb then
             task.wait(0.2)
             pcall(function() Services.ReplicatedStorage.Remotes.Extras.ReplicateToy:InvokeServer("FakeBomb") end)
+            task.wait(0.1)
+            UnequipBomb()
         end
     end)
 )
@@ -791,6 +792,8 @@ section:AddToggle("Auto-Get Fake Bomb", function(bool)
     autoGetBomb = bool
     if bool then
         pcall(function() Services.ReplicatedStorage.Remotes.Extras.ReplicateToy:InvokeServer("FakeBomb") end)
+        task.wait(0.1)
+        UnequipBomb()
     end
 end)
 
@@ -854,7 +857,7 @@ local gbjBigButtonSize = 200
 local gbjBindButtonSize = 0.11
 local gbjBindButton = nil
 
-local GOLD_BOMB_NAME = "GoldBomb"
+local GOLD_BOMB_NAME = "GoldFakeBomb"
 
 local GoldBombJumpMaid = Maid.new()
 RootMaid:GiveTask(GoldBombJumpMaid)
@@ -876,9 +879,9 @@ local function GBJStartCooldown()
     if gbjBindButton then
         BindableButtons.UpdateBButtonText("goldbombjump_bind", "Wait", true, true)
     end
-    
+
     task.spawn(function()
-        for i = 4, 1, -1 do
+        for i = 9, 1, -1 do
             if not gbjOnCooldown then break end
             local bigBtn = BBSystem.Buttons["goldbombjump_big"]
             if bigBtn then bigBtn.Text = tostring(i) end
@@ -913,7 +916,6 @@ end
 
 local function UnequipGoldBomb()
     task.spawn(function()
-        task.wait(0.5)
         local character = LocalPlayer.Character
         if character then
             local bomb = character:FindFirstChild(GOLD_BOMB_NAME)
@@ -941,7 +943,7 @@ local function GetAnyGoldBomb()
     end
 
     local success = pcall(function()
-        Services.ReplicatedStorage.Remotes.Extras.ReplicateToy:InvokeServer("GoldBomb")
+        Services.ReplicatedStorage.Remotes.Extras.ReplicateToy:InvokeServer("GoldFakeBomb")
     end)
 
     if success then
@@ -1045,7 +1047,9 @@ GoldBombJumpMaid:GiveTasks(
         gbjJustRespawned = false
         if autoGetGoldBomb then
             task.wait(0.2)
-            pcall(function() Services.ReplicatedStorage.Remotes.Extras.ReplicateToy:InvokeServer("GoldBomb") end)
+            pcall(function() Services.ReplicatedStorage.Remotes.Extras.ReplicateToy:InvokeServer("GoldFakeBomb") end)
+            task.wait(0.1)
+            UnequipGoldBomb()
         end
     end)
 )
@@ -1056,7 +1060,9 @@ gbjSection:AddToggle("Enable Auto Gold Bomb Jump", function(bool) goldBombJumpEn
 gbjSection:AddToggle("Auto-Get Gold Bomb", function(bool)
     autoGetGoldBomb = bool
     if bool then
-        pcall(function() Services.ReplicatedStorage.Remotes.Extras.ReplicateToy:InvokeServer("GoldBomb") end)
+        pcall(function() Services.ReplicatedStorage.Remotes.Extras.ReplicateToy:InvokeServer("GoldFakeBomb") end)
+        task.wait(0.1)
+        UnequipGoldBomb()
     end
 end)
 
