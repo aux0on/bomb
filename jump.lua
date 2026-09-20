@@ -88,6 +88,28 @@ local __UIS  = getfserv("UserInputService")
 local __PLRS = getfserv("Players")
 local __TS   = getfserv("TweenService")
 
+local SAVE_FILE = "BJP_BP.json"
+
+local function savePositions(data)
+    pcall(function()
+        if writefile then
+            writefile(SAVE_FILE, game:GetService("HttpService"):JSONEncode(data))
+        end
+    end)
+end
+
+local function loadPositions()
+    local ok, result = pcall(function()
+        if readfile and isfile and isfile(SAVE_FILE) then
+            return game:GetService("HttpService"):JSONDecode(readfile(SAVE_FILE))
+        end
+    end)
+    if ok and type(result) == "table" then return result end
+    return {}
+end
+
+local savedPositions = loadPositions()
+
 local BBSystem = {Buttons = {}, Connections = {}}
 
 local function bb_safecallback(callback)
@@ -158,6 +180,13 @@ local function BB_MakeDraggable(gui, func, ripple, sound)
                     dragging = false
                     __TS:Create(gui, tInfo, {Size = normalSize, TextSize = normalTxtSize}):Play()
                     if not hasMoved then bb_safecallback(func) end
+                    
+                    savedPositions[gui.Name] = {
+                        xs = gui.Position.X.Scale, xo = gui.Position.X.Offset,
+                        ys = gui.Position.Y.Scale, yo = gui.Position.Y.Offset
+                    }
+                    savePositions(savedPositions)
+                    
                     rel:Disconnect()
                 end
             end)
@@ -201,7 +230,14 @@ local function AddBigButton(id, text, func, isGold)
     local bb = Instance.new("TextButton")
     bb.Name = id
     bb.Size = __UD2(0, 200, 0, 75)
-    bb.Position = __UD2(0.5, 0, 0.5, 0)
+    
+    local sp = savedPositions[id]
+    if sp then
+        bb.Position = __UD2(sp.xs, sp.xo, sp.ys, sp.yo)
+    else
+        bb.Position = __UD2(0.5, 0, 0.5, 0)
+    end
+    
     bb.AnchorPoint = __V2(0.5, 0.5)
     bb.BackgroundColor3 = __RGB(255, 255, 255)
     bb.BackgroundTransparency = 0.9
@@ -360,6 +396,13 @@ local function Bind_MakeDraggable(gui, maid, ripple, sound, clickFunc)
                     if not hasMoved then
                         bind_safecallback(clickFunc)
                     end
+                    
+                    savedPositions[gui.Name] = {
+                        xs = gui.Position.X.Scale, xo = gui.Position.X.Offset,
+                        ys = gui.Position.Y.Scale, yo = gui.Position.Y.Offset
+                    }
+                    savePositions(savedPositions)
+                    
                     rel:Disconnect()
                 end
             end)
@@ -390,8 +433,16 @@ function BindableButtons.AddBButton(id, text, clickFunc, isGold)
     local screen = camera.ViewportSize
     local buttonSizeY = 0.11
     local widthScale = buttonSizeY * (screen.Y / screen.X)
-    local xPos = 0.1 + ((BindableButtons.Count % 8) * (widthScale + 0.005))
-    local yPos = 0.9 - (math.floor(BindableButtons.Count / 8) * (buttonSizeY + 0.015))
+    
+    local sp = savedPositions[id]
+    local xPos, yPos
+    if sp then
+        xPos = sp.xs
+        yPos = sp.ys
+    else
+        xPos = 0.1 + ((BindableButtons.Count % 8) * (widthScale + 0.005))
+        yPos = 0.9 - (math.floor(BindableButtons.Count / 8) * (buttonSizeY + 0.015))
+    end
 
     local ImageButton = Instance.new("ImageButton")
     ImageButton.Name = id
@@ -820,6 +871,16 @@ section:AddSlider("BJ Big Button Size", 50, 300, CONFIG.DefaultSize, function(va
     end
 end)
 
+section:AddButton("Reset BJ Big Button Position", function()
+    savedPositions["bombjump_big"] = nil
+    savePositions(savedPositions)
+    local btn = BBSystem.Buttons["bombjump_big"]
+    if btn then
+        btn.Position = __UD2(0.5, 0, 0.5, 0)
+    end
+    shared.Notify("BJ Big button position reset", 2)
+end)
+
 section:AddToggle("Enable BJ Bind Button", function(e)
     bindBtnExists = e
     if e then
@@ -842,6 +903,20 @@ section:AddSlider("BJ Bind Button Size", 5, 25, 11, function(value)
         local screen = Services.Workspace.CurrentCamera.ViewportSize
         bjBindButton.Size = __UD2(bindButtonSize * (screen.Y / screen.X), 0, bindButtonSize, 0)
     end
+end)
+
+section:AddButton("Reset BJ Bind Button Position", function()
+    savedPositions["bombjump_bind"] = nil
+    savePositions(savedPositions)
+    local btn = BindableButtons.Buttons["bombjump_bind"]
+    if btn then
+        local camera = Services.Workspace.CurrentCamera
+        local screen = camera.ViewportSize
+        local buttonSizeY = bindButtonSize
+        local widthScale = buttonSizeY * (screen.Y / screen.X)
+        btn.Position = __UD2(0.1, 0, 0.9, 0)
+    end
+    shared.Notify("BJ Bind button position reset", 2)
 end)
 
 section:AddKeybind("Bomb Jump Keybind", "E", FastBombJump)
@@ -1085,6 +1160,16 @@ gbjSection:AddSlider("GBJ Big Button Size", 50, 300, 200, function(value)
     end
 end)
 
+gbjSection:AddButton("Reset GBJ Big Button Position", function()
+    savedPositions["goldbombjump_big"] = nil
+    savePositions(savedPositions)
+    local btn = BBSystem.Buttons["goldbombjump_big"]
+    if btn then
+        btn.Position = __UD2(0.5, 0, 0.5, 0)
+    end
+    shared.Notify("GBJ Big button position reset", 2)
+end)
+
 gbjSection:AddToggle("Enable GBJ Bind Button", function(e)
     if e then
         BindableButtons.AddBButton("goldbombjump_bind", "GBJ", FastGoldBombJump, true)
@@ -1106,6 +1191,16 @@ gbjSection:AddSlider("GBJ Bind Button Size", 5, 25, 11, function(value)
         local screen = Services.Workspace.CurrentCamera.ViewportSize
         gbjBindButton.Size = __UD2(gbjBindButtonSize * (screen.Y / screen.X), 0, gbjBindButtonSize, 0)
     end
+end)
+
+gbjSection:AddButton("Reset GBJ Bind Button Position", function()
+    savedPositions["goldbombjump_bind"] = nil
+    savePositions(savedPositions)
+    local btn = BindableButtons.Buttons["goldbombjump_bind"]
+    if btn then
+        btn.Position = __UD2(0.1, 0, 0.9, 0)
+    end
+    shared.Notify("GBJ Bind button position reset", 2)
 end)
 
 gbjSection:AddKeybind("Gold Bomb Jump Keybind", "G", FastGoldBombJump)
