@@ -148,6 +148,10 @@ local __BB_GRAD_SEQ = ColorSequence.new({
     ColorSequenceKeypoint.new(1,    __PCLR(0.470588,  0.156863,  0.470588))
 })
 
+local muteButtonSounds = false
+local lockBindableButtons = false
+local lockBigButtons = false
+
 local function BB_MakeDraggable(gui, func, ripple, sound)
     local dragging, dragInput, dragStart, startPos
     local hasMoved = false
@@ -181,11 +185,13 @@ local function BB_MakeDraggable(gui, func, ripple, sound)
                     __TS:Create(gui, tInfo, {Size = normalSize, TextSize = normalTxtSize}):Play()
                     if not hasMoved then bb_safecallback(func) end
                     
-                    savedPositions[gui.Name] = {
-                        xs = gui.Position.X.Scale, xo = gui.Position.X.Offset,
-                        ys = gui.Position.Y.Scale, yo = gui.Position.Y.Offset
-                    }
-                    savePositions(savedPositions)
+                    if not lockBigButtons then
+                        savedPositions[gui.Name] = {
+                            xs = gui.Position.X.Scale, xo = gui.Position.X.Offset,
+                            ys = gui.Position.Y.Scale, yo = gui.Position.Y.Offset
+                        }
+                        savePositions(savedPositions)
+                    end
                     
                     rel:Disconnect()
                 end
@@ -199,14 +205,13 @@ local function BB_MakeDraggable(gui, func, ripple, sound)
     end)
     __UIS.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
+            if lockBigButtons then return end
             local delta = input.Position - dragStart
             if delta.Magnitude > 7 then hasMoved = true end
             gui.Position = __UD2(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
 end
-
-local muteButtonSounds = false
 
 local function UpdateAllButtonSounds()
     local volume = muteButtonSounds and 0 or 0.5
@@ -349,9 +354,6 @@ end
 local function Bind_GetStorage()
     local parent = gethui and gethui()
     if not parent or typeof(parent) ~= "Instance" then
-        parent = getfserv("CoreGui")
-    end
-    if not parent or typeof(parent) ~= "Instance" then
         parent = __PLRS.LocalPlayer:WaitForChild("PlayerGui", 5)
     end
     if typeof(parent) ~= "Instance" then
@@ -397,11 +399,13 @@ local function Bind_MakeDraggable(gui, maid, ripple, sound, clickFunc)
                         bind_safecallback(clickFunc)
                     end
                     
-                    savedPositions[gui.Name] = {
-                        xs = gui.Position.X.Scale, xo = gui.Position.X.Offset,
-                        ys = gui.Position.Y.Scale, yo = gui.Position.Y.Offset
-                    }
-                    savePositions(savedPositions)
+                    if not lockBindableButtons then
+                        savedPositions[gui.Name] = {
+                            xs = gui.Position.X.Scale, xo = gui.Position.X.Offset,
+                            ys = gui.Position.Y.Scale, yo = gui.Position.Y.Offset
+                        }
+                        savePositions(savedPositions)
+                    end
                     
                     rel:Disconnect()
                 end
@@ -417,6 +421,7 @@ local function Bind_MakeDraggable(gui, maid, ripple, sound, clickFunc)
     
     maid:GiveTask(__UIS.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
+            if lockBindableButtons then return end
             local delta = input.Position - dragStart
             if delta.Magnitude > 7 then hasMoved = true end
             local screen = gui.Parent.AbsoluteSize
@@ -566,6 +571,14 @@ aboutSection:AddParagraph("Bomb Jump+", "Plugin Made by @lzzzx")
 aboutSection:AddToggle("Mute Button SFX", function(bool)
     muteButtonSounds = bool
     UpdateAllButtonSounds()
+end)
+
+aboutSection:AddToggle("Lock Bindable Buttons", function(bool)
+    lockBindableButtons = bool
+end)
+
+aboutSection:AddToggle("Lock Big Buttons", function(bool)
+    lockBigButtons = bool
 end)
 
 shared.Notify("Bomb Jump+ Successfully Loaded!", 1)
